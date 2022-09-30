@@ -7,8 +7,6 @@
 #include "hal/datatimer.h"
 #include "drivers/ubxg6010/ubxg6010.h"
 #include "drivers/si4032/si4032.h"
-#include "drivers/pulse_counter/pulse_counter.h"
-#include "bmp280_handler.h"
 #include "si5351_handler.h"
 #include "radio.h"
 #include "config.h"
@@ -84,10 +82,7 @@ int main(void)
     if (gps_nmea_output_enabled) {
         log_info("External USART init\n");
         usart_ext_init(EXTERNAL_SERIAL_PORT_BAUD_RATE);
-    } else if (pulse_counter_enabled) {
-        log_info("Pulse counter init\n");
-        pulse_counter_init(PULSE_COUNTER_PIN_MODE, PULSE_COUNTER_INTERRUPT_EDGE);
-    } else {
+    }  else {
         log_info("I2C init: clock speed %d kHz\n", I2C_BUS_CLOCK_SPEED / 1000);
         i2c_init(I2C_BUS_CLOCK_SPEED);
     }
@@ -106,17 +101,6 @@ int main(void)
 
     log_info("Si4032 init\n");
     si4032_init();
-
-    if (bmp280_enabled) {
-        for (int i = 0; i < 3; i++) {
-            log_info("BMP280 init\n");
-            success = bmp280_handler_init();
-            if (success) {
-                break;
-            }
-            log_error("BMP280 init failed, retrying...");
-        }
-    }
 
     if (si5351_enabled) {
         for (int i = 0; i < 3; i++) {

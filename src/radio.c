@@ -17,39 +17,13 @@
 #include "radio_payload_cw.h"
 #include "radio_payload_aprs_position.h"
 #include "radio_payload_aprs_weather.h"
-#include "radio_payload_horus_v1.h"
 #include "radio_payload_horus_v2.h"
 #include "radio_payload_wspr.h"
 #include "radio_payload_jtencode.h"
 #include "radio_payload_fsq.h"
 
 radio_transmit_entry radio_transmit_schedule[] = {
-#if RADIO_SI4032_TX_HORUS_V1_CONTINUOUS
-        {
-                .enabled = RADIO_SI4032_TX_HORUS_V1,
-                .radio_type = RADIO_TYPE_SI4032,
-                .data_mode = RADIO_DATA_MODE_HORUS_V1,
-                .time_sync_seconds = HORUS_V1_TIME_SYNC_SECONDS,
-                .time_sync_seconds_offset = HORUS_V1_TIME_SYNC_OFFSET_SECONDS,
-                .frequency = RADIO_SI4032_TX_FREQUENCY_HORUS_V1,
-                .tx_power = RADIO_SI4032_TX_POWER,
-                .symbol_rate = HORUS_V1_BAUD_RATE_SI4032,
-                .payload_encoder = &radio_horus_v1_payload_encoder,
-                .fsk_encoder_api = &mfsk_fsk_encoder_api,
-        },
-        {
-                .enabled = RADIO_SI4032_TX_HORUS_V1,
-                .radio_type = RADIO_TYPE_SI4032,
-                .data_mode = RADIO_DATA_MODE_HORUS_V1,
-                .time_sync_seconds = HORUS_V1_TIME_SYNC_SECONDS,
-                .time_sync_seconds_offset = HORUS_V1_TIME_SYNC_OFFSET_SECONDS,
-                .frequency = RADIO_SI4032_TX_FREQUENCY_HORUS_V1,
-                .tx_power = RADIO_SI4032_TX_POWER,
-                .symbol_rate = HORUS_V1_BAUD_RATE_SI4032,
-                .payload_encoder = &radio_horus_v1_idle_encoder,
-                .fsk_encoder_api = &mfsk_fsk_encoder_api,
-        },
-#elif RADIO_SI4032_TX_HORUS_V2_CONTINUOUS
+#if RADIO_SI4032_TX_HORUS_V2_CONTINUOUS
         {
                 .enabled = RADIO_SI4032_TX_HORUS_V2,
                 .radio_type = RADIO_TYPE_SI4032,
@@ -119,19 +93,6 @@ radio_transmit_entry radio_transmit_schedule[] = {
                 .fsk_encoder_api = &bell_fsk_encoder_api,
         },
         {
-                .enabled = RADIO_SI4032_TX_HORUS_V1,
-                .radio_type = RADIO_TYPE_SI4032,
-                .data_mode = RADIO_DATA_MODE_HORUS_V1,
-                .transmit_count = RADIO_SI4032_TX_HORUS_V1_COUNT,
-                .time_sync_seconds = HORUS_V1_TIME_SYNC_SECONDS,
-                .time_sync_seconds_offset = HORUS_V1_TIME_SYNC_OFFSET_SECONDS,
-                .frequency = RADIO_SI4032_TX_FREQUENCY_HORUS_V1,
-                .tx_power = RADIO_SI4032_TX_POWER,
-                .symbol_rate = HORUS_V1_BAUD_RATE_SI4032,
-                .payload_encoder = &radio_horus_v1_payload_encoder,
-                .fsk_encoder_api = &mfsk_fsk_encoder_api,
-        },
-        {
                 .enabled = RADIO_SI4032_TX_HORUS_V2,
                 .radio_type = RADIO_TYPE_SI4032,
                 .data_mode = RADIO_DATA_MODE_HORUS_V2,
@@ -173,21 +134,6 @@ radio_transmit_entry radio_transmit_schedule[] = {
                 .symbol_rate = MORSE_WPM_TO_SYMBOL_RATE(CW_SPEED_WPM),
                 .payload_encoder = &radio_cw_payload_encoder,
                 .fsk_encoder_api = &morse_fsk_encoder_api,
-        },
-#endif
-#if RADIO_SI5351_TX_HORUS_V1
-        {
-                .enabled = RADIO_SI5351_TX_HORUS_V1,
-                .radio_type = RADIO_TYPE_SI5351,
-                .data_mode = RADIO_DATA_MODE_HORUS_V1,
-                .transmit_count = RADIO_SI5351_TX_HORUS_V1_COUNT,
-                .time_sync_seconds = HORUS_V1_TIME_SYNC_SECONDS,
-                .time_sync_seconds_offset = HORUS_V1_TIME_SYNC_OFFSET_SECONDS,
-                .frequency = RADIO_SI5351_TX_FREQUENCY_HORUS_V1,
-                .tx_power = RADIO_SI5351_TX_POWER,
-                .symbol_rate = HORUS_V1_BAUD_RATE_SI5351,
-                .payload_encoder = &radio_horus_v1_payload_encoder,
-                .fsk_encoder_api = &mfsk_fsk_encoder_api,
         },
 #endif
 #if RADIO_SI5351_TX_HORUS_V2
@@ -437,22 +383,9 @@ static bool radio_start_transmit(radio_transmit_entry *entry)
                     &radio_shared_state.radio_current_fsk_tones);
             entry->fsk_encoder_api->set_data(&entry->fsk_encoder, radio_current_payload_length, radio_current_payload);
             break;
-        case RADIO_DATA_MODE_HORUS_V1:
-            // GPS should not disturb the timing of Horus modes
-            enable_gps_during_transmit = true;
-
-            mfsk_encoder_new(&entry->fsk_encoder, MFSK_4, entry->symbol_rate, HORUS_V1_TONE_SPACING_HZ_SI5351 * 100);
-            radio_shared_state.radio_current_symbol_rate = entry->fsk_encoder_api->get_symbol_rate(&entry->fsk_encoder);
-            entry->fsk_encoder_api->get_tones(&entry->fsk_encoder, &radio_shared_state.radio_current_fsk_tone_count,
-                    &radio_shared_state.radio_current_fsk_tones);
-            radio_shared_state.radio_current_tone_spacing_hz_100 = entry->fsk_encoder_api->get_tone_spacing(
-                    &entry->fsk_encoder);
-            entry->fsk_encoder_api->set_data(&entry->fsk_encoder, radio_current_payload_length, radio_current_payload);
-            break;
         case RADIO_DATA_MODE_HORUS_V2:
             // GPS should not disturb the timing of Horus modes
             enable_gps_during_transmit = true;
-
             mfsk_encoder_new(&entry->fsk_encoder, MFSK_4, entry->symbol_rate, HORUS_V2_TONE_SPACING_HZ_SI5351 * 100);
             radio_shared_state.radio_current_symbol_rate = entry->fsk_encoder_api->get_symbol_rate(&entry->fsk_encoder);
             entry->fsk_encoder_api->get_tones(&entry->fsk_encoder, &radio_shared_state.radio_current_fsk_tone_count,
@@ -577,7 +510,6 @@ static bool radio_stop_transmit(radio_transmit_entry *entry)
         case RADIO_DATA_MODE_APRS_1200:
             bell_encoder_destroy(&entry->fsk_encoder);
             break;
-        case RADIO_DATA_MODE_HORUS_V1:
         case RADIO_DATA_MODE_HORUS_V2:
             mfsk_encoder_destroy(&entry->fsk_encoder);
             break;
@@ -851,7 +783,6 @@ void radio_init()
             case RADIO_DATA_MODE_APRS_1200:
                 entry->messages = aprs_comment_templates;
                 break;
-            case RADIO_DATA_MODE_HORUS_V1:
             case RADIO_DATA_MODE_HORUS_V2:
                 // No messages
                 break;
